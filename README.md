@@ -28,18 +28,22 @@ Aplicação full-stack para abertura, análise e acompanhamento de pedidos de vi
    ```bash
    docker compose up -d --build
    ```
-3. Execute as migrations (UUIDs incluídos):
+3. Instale as dependências da API:
+   ```bash
+   docker compose run --rm php composer install
+   ```
+4. Execute as migrations (UUIDs incluídos):
    ```bash
    docker compose run --rm php php artisan migrate --force
    ```
-4. (Opcional) Popule dados de referência:
+5. (Opcional) Popule dados de referência:
    ```bash
    docker compose run --rm php php artisan db:seed --class=UserSeeder
    ```
    Usuários criados pelo seed:
    - Admin: `admin@example.com` / `secret123`
    - Cliente: `user@example.com` / `secret123`
-5. Acesse o dashboard em `http://localhost:5173/` e autentique-se com uma das credenciais acima.
+6. Acesse o dashboard em `http://localhost:5173/` e autentique-se com uma das credenciais acima.
 
 ## URLs Úteis
 
@@ -65,3 +69,4 @@ Aplicação full-stack para abertura, análise e acompanhamento de pedidos de vi
 ## Disclaimer
 
 Neste projeto procurei implementar as funcionalidades mais basicas tanto dos frameworks quanto em questao de arquitetura, visando um entendimento mais facil do codigo. Em um projeto real, eu adotaria boas praticas como Clean Architecture e SOLID ao extremo com algumas abstrações principalmente no Laravel.
+Os dockers tambem estao bem basicos apenas para demonstracao, em um projeto real eu usaria containers mais otimizados e idempotentes.
