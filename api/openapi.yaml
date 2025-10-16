@@ -1,0 +1,684 @@
+openapi: 3.1.0
+info:
+  title: Travel Orders API
+  version: 1.0.0
+  description: |
+    API para gerenciamento de pedidos de viagem, usuários e notificações.
+    Todos os endpoints autenticados utilizam JWT Bearer obtido em `/api/login`.
+servers:
+  - url: http://localhost:8080
+    description: Ambiente local (Docker)
+security:
+  - bearerAuth: []
+paths:
+  /api/login:
+    post:
+      tags: [Autenticação]
+      summary: Autenticação do usuário
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+                password:
+                  type: string
+                  format: password
+                  example: secret123
+      responses:
+        '200':
+          description: Token gerado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Credenciais inválidas
+  /api/register:
+    post:
+      tags: [Autenticação]
+      summary: Registro de novo usuário
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password]
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+      responses:
+        '200':
+          description: Usuário criado
+  /api/getMe:
+    get:
+      tags: [Autenticação]
+      summary: Dados do usuário autenticado
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Dados do usuário autenticado
+  /api/logout:
+    get:
+      tags: [Autenticação]
+      summary: Invalida o token atual
+      security:
+        - bearerAuth: []
+      responses:
+        '200': { description: Logout efetuado }
+  /api/check-token:
+    get:
+      tags: [Autenticação]
+      summary: Valida token atual
+      security:
+        - bearerAuth: []
+      responses:
+        '200': { description: Token válido }
+        '401': { description: Token inválido ou expirado }
+  /api/refresh-token:
+    get:
+      tags: [Autenticação]
+      summary: Obtém um novo token JWT
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Token renovado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+  /api/travel-orders:
+    get:
+      tags: [Pedidos de Viagem]
+      summary: Lista pedidos de viagem
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [solicitado, aprovado, cancelado]
+        - in: query
+          name: destination
+          schema:
+            type: string
+        - in: query
+          name: origin
+          schema:
+            type: string
+        - in: query
+          name: created_from
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: created_to
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: travel_from
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: travel_to
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: per_page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Lista de pedidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TravelOrderListResponse'
+    post:
+      tags: [Pedidos de Viagem]
+      summary: Cria um pedido de viagem
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [origin, destination, departure_date, return_date]
+              properties:
+                origin:
+                  type: string
+                destination:
+                  type: string
+                departure_date:
+                  type: string
+                  format: date
+                return_date:
+                  type: string
+                  format: date
+                notes:
+                  type: string
+      responses:
+        '201':
+          description: Pedido criado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TravelOrderResponse'
+        '422': { description: Falha de validação }
+  /api/travel-orders/{travelOrderUuid}:
+    get:
+      tags: [Pedidos de Viagem]
+      summary: Detalhes de um pedido de viagem
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TravelOrderUuid'
+      responses:
+        '200':
+          description: Pedido encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TravelOrderResponse'
+        '403': { description: Acesso negado }
+        '404': { description: Pedido não encontrado }
+  /api/travel-orders/{travelOrderUuid}/status:
+    patch:
+      tags: [Pedidos de Viagem]
+      summary: Atualiza o status de um pedido (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TravelOrderUuid'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [aprovado, cancelado]
+                annotation:
+                  type: string
+      responses:
+        '200':
+          description: Status atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TravelOrderResponse'
+        '403': { description: Acesso negado }
+        '409': { description: Transição inválida }
+  /api/notifications:
+    get:
+      tags: [Notificações]
+      summary: Lista notificações do usuário
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: per_page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Notificações retornadas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationListResponse'
+  /api/notifications/{notificationId}/read:
+    patch:
+      tags: [Notificações]
+      summary: Marca notificação como lida
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: notificationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Notificação atualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationResponse'
+        '404': { description: Notificação não encontrada }
+  /api/notifications/unread-count:
+    get:
+      tags: [Notificações]
+      summary: Contagem de notificações não lidas
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Contagem retornada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnreadCountResponse'
+  /api/locations/cities:
+    get:
+      tags: [Localidades]
+      summary: Busca cidades (IBGE)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: query
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 2
+        - name: state
+          in: query
+          schema:
+            type: string
+            description: Sigla UF
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+      responses:
+        '200':
+          description: Resultado da busca
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CityListResponse'
+        '502': { description: Falha ao consultar IBGE }
+  /api/admin/users:
+    get:
+      tags: [Admin - Usuários]
+      summary: Lista usuários (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+        - in: query
+          name: tipo_usuario
+          schema:
+            type: string
+            enum: [admin, cliente]
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [active, inactive]
+        - in: query
+          name: per_page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Lista de usuários
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserListResponse'
+    post:
+      tags: [Admin - Usuários]
+      summary: Cria usuário (admin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password, tipo_usuario]
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+                  minLength: 6
+                tipo_usuario:
+                  type: string
+                  enum: [admin, cliente]
+                is_active:
+                  type: boolean
+      responses:
+        '201':
+          description: Usuário criado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+  /api/admin/users/{userUuid}:
+    patch:
+      tags: [Admin - Usuários]
+      summary: Atualiza dados do usuário (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserUuid'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                email: { type: string, format: email }
+                password: { type: string, format: password, minLength: 6 }
+                tipo_usuario: { type: string, enum: [admin, cliente] }
+                is_active: { type: boolean }
+      responses:
+        '200':
+          description: Usuário atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '404': { description: Usuário não encontrado }
+  /api/admin/users/{userUuid}/status:
+    patch:
+      tags: [Admin - Usuários]
+      summary: Ativa/desativa usuário
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserUuid'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [is_active]
+              properties:
+                is_active:
+                  type: boolean
+      responses:
+        '200':
+          description: Status atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '404': { description: Usuário não encontrado }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    TravelOrderUuid:
+      name: travelOrderUuid
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    UserUuid:
+      name: userUuid
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  schemas:
+    LoginResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+        token_type:
+          type: string
+          example: bearer
+        expires_in:
+          type: string
+          example: '259200'
+    TravelOrderListResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseSuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/TravelOrder'
+    TravelOrderResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseSuccessResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/TravelOrderWithHistory'
+    TravelOrder:
+      type: object
+      properties:
+        uuid:
+          type: string
+          format: uuid
+        origin:
+          type: string
+        destination:
+          type: string
+        departure_date:
+          type: string
+          format: date
+        return_date:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [solicitado, aprovado, cancelado]
+        status_label:
+          type: string
+        notes:
+          type: string
+          nullable: true
+        requester:
+          $ref: '#/components/schemas/Requester'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    TravelOrderWithHistory:
+      allOf:
+        - $ref: '#/components/schemas/TravelOrder'
+        - type: object
+          properties:
+            status_history:
+              type: array
+              items:
+                $ref: '#/components/schemas/TravelOrderHistory'
+    TravelOrderHistory:
+      type: object
+      properties:
+        uuid:
+          type: string
+          format: uuid
+        from_status:
+          type: string
+          nullable: true
+        to_status:
+          type: string
+          enum: [solicitado, aprovado, cancelado]
+        annotation:
+          type: string
+          nullable: true
+        changed_by:
+          type: object
+          nullable: true
+          properties:
+            uuid: { type: string, format: uuid }
+            name: { type: string }
+        created_at:
+          type: string
+          format: date-time
+    NotificationListResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseSuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/Notification'
+    NotificationResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseSuccessResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/Notification'
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+        data:
+          type: object
+        message:
+          type: string
+          nullable: true
+        is_read:
+          type: boolean
+        read_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+    UnreadCountResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseSuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                unread_count:
+                  type: integer
+    CityListResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseSuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/City'
+    City:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        state:
+          type: string
+        state_name:
+          type: string
+        region:
+          type: string
+          nullable: true
+    UserListResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseSuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/User'
+    UserResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseSuccessResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/User'
+    User:
+      type: object
+      properties:
+        uuid:
+          type: string
+          format: uuid
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        tipo_usuario:
+          type: string
+          enum: [admin, cliente]
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    Requester:
+      type: object
+      properties:
+        uuid:
+          type: string
+          format: uuid
+        name:
+          type: string
+    BaseSuccessResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        message:
+          type: string

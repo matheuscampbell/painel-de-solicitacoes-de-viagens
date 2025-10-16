@@ -1,0 +1,71 @@
+<?php
+
+namespace App\Services;
+
+use App\Repositories\{{repository}};
+use App\Exceptions\ExceptionFriendly;
+use Illuminate\Support\Facades\DB;
+class {{class}}
+{
+    public function __construct()
+    {
+        $this->repository = new {{repository}}();
+    }
+
+    public function index()
+        {
+            try {
+                return $this->repository->all();
+            } catch (\Exception $e) {
+                throw new ExceptionFriendly($e->getMessage(), $e->getCode());
+            }
+        }
+
+        public function store($data)
+        {
+            DB::beginTransaction();
+            try {
+                $r = $this->repository->create($data);
+                DB::commit();
+                return $r;
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw new ExceptionFriendly($e->getMessage(), $e->getCode());
+            }
+        }
+
+        public function show($id)
+        {
+            try {
+                return $this->repository->find($id);
+            } catch (\Exception $e) {
+                throw new ExceptionFriendly($e->getMessage(), $e->getCode());
+            }
+        }
+
+        public function update($id, $data)
+        {
+            DB::beginTransaction();
+            try {
+                $r = $this->repository->update($data, $id);
+                DB::commit();
+                return $r;
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw new ExceptionFriendly($e->getMessage(), $e->getCode());
+            }
+        }
+
+        public function destroy($id)
+        {
+            DB::beginTransaction();
+            try {
+                $r = $this->repository->delete($id);
+                DB::commit();
+                return $r;
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw new ExceptionFriendly($e->getMessage(), $e->getCode());
+            }
+        }
+}

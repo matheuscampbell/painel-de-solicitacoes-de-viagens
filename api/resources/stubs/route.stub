@@ -1,0 +1,11 @@
+
+
+use App\Http\Controllers\{{controller}};
+
+Route::middleware(['api', 'auth:api'])->group(function () {
+    Route::get('/{{url}}/', [{{controller}}::class, 'index']);
+    Route::get('/{{url}}/{id}', [{{controller}}::class, 'show']);
+    Route::post('/{{url}}', [{{controller}}::class, 'store']);
+    Route::put('/{{url}}/{id}', [{{controller}}::class, 'update']);
+    Route::delete('/{{url}}/{id}', [{{controller}}::class, 'destroy']);
+});

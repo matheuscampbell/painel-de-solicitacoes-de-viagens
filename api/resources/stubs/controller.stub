@@ -1,0 +1,87 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Http\Requests\Create{{name}}Request;
+use App\Http\Requests\Update{{name}}Request;
+use App\Http\Requests\Delete{{name}}Request;
+use App\Http\Requests\Get{{name}}Request;
+use App\Traits\ApiResponse;
+use Illuminate\Http\Request;
+use App\Services\{{name}}Service;
+
+class {{name}}Controller extends Controller
+{
+
+    use ApiResponse;
+
+    public function __construct()
+    {
+        $this->service = new {{name}}Service();
+    }
+
+    /**
+     * Display a listing of the resource.
+     */
+    public function index(Get{{name}}Request $request)
+    {
+        try {
+            $data = $this->service->index();
+            return $this->success($data);
+        } catch (\Exception $e) {
+            return $this->error($e->getMessage(), $e->getCode());
+        }
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     */
+    public function store(Create{{name}}Request $request)
+    {
+        try {
+            $data = $this->service->store($request->validated());
+            return $this->success($data);
+        } catch (\Exception $e) {
+            return $this->error($e->getMessage(), $e->getCode());
+        }
+    }
+
+    /**
+     * Display the specified resource.
+     */
+    public function show(Get{{name}}Request $request, string $id)
+    {
+        try {
+            $data = $this->service->show($id);
+            return $this->success($data);
+        } catch (\Exception $e) {
+            return $this->error($e->getMessage(), $e->getCode());
+        }
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(Update{{name}}Request $request, string $id)
+    {
+        try {
+            $data = $this->service->update($id, $request->validated());
+            return $this->success($data);
+        } catch (\Exception $e) {
+            return $this->error($e->getMessage(), $e->getCode());
+        }
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy(Delete{{name}}Request $request, string $id)
+    {
+        try {
+            $data = $this->service->destroy($id);
+            return $this->success($data);
+        } catch (\Exception $e) {
+            return $this->error($e->getMessage(), $e->getCode());
+        }
+    }
+}
